@@ -8,14 +8,26 @@ macro_rules! generate_opcodes {
                 $name = $v,
             )*
         }
-        impl From<u8> for OpCode {
-            fn from(value: u8) -> Self {
+        impl TryFrom<u8> for OpCode {
+            type Error = String;
+            fn try_from(value: u8) -> Result<Self, Self::Error> {
                 match value {
                     $(
-                        $v => Self::$name,
+                        $v => Ok(Self::$name),
                     )*
-                    _ => panic!()
+                    _ => Err(format!("{} is not a valid opcode", value))
                 }
+            }
+        }
+        impl TryFrom<&str> for OpCode {
+            type Error = String;
+            fn try_from(value: &str) -> Result<Self, Self::Error> {
+               match value {
+                    $(
+                        stringify!($name) => Ok(Self::$name),
+                    )*
+                    _ => Err(format!("{} is not a valid opcode", value))
+               }
             }
         }
     };

@@ -16,21 +16,6 @@ pub enum Register {
     RegisterCount,
 }
 
-impl From<u8> for Register {
-    fn from(value: u8) -> Self {
-        match value {
-            1 => Self::A,
-            2 => Self::B,
-            3 => Self::C,
-            4 => Self::M,
-            5 => Self::SP,
-            6 => Self::PC,
-            7 => Self::FLAGS,
-            _ => panic!("{} is not a valid register", value),
-        }
-    }
-}
-
 pub struct Machine {
     registers: [u16; Self::REGISTER_COUNT],
     data: [u8; Self::DATA_LENGTH],
@@ -61,7 +46,7 @@ impl Machine {
             self.halt = true;
         }
 
-        let op: OpCode = self.fetch();
+        let op: OpCode = self.fetch()?;
 
         print!("| Current opcode {:?} (0x{:X}) ", op, op as u8);
 
@@ -69,36 +54,36 @@ impl Machine {
             OpCode::NOP => {}
             OpCode::HALT => self.halt = true,
             OpCode::ADD => {
-                let a: u16 = self.fetch();
-                let b: u16 = self.fetch();
+                let a: u16 = self.fetch()?;
+                let b: u16 = self.fetch()?;
                 print!("0x{:X}, 0x{:X} -> 0x{:X}", a, b, a + b);
                 self.registers[Register::SP as usize] = a + b;
             }
             OpCode::SUB => {
-                let a: u16 = self.fetch();
-                let b: u16 = self.fetch();
+                let a: u16 = self.fetch()?;
+                let b: u16 = self.fetch()?;
                 print!("0x{:X}, 0x{:X} -> 0x{:X}", a, b, a - b);
                 self.registers[Register::SP as usize] = a - b;
             }
             OpCode::MUL => {
-                let a: u16 = self.fetch();
-                let b: u16 = self.fetch();
+                let a: u16 = self.fetch()?;
+                let b: u16 = self.fetch()?;
                 print!("0x{:X}, 0x{:X} -> 0x{:X}", a, b, a * b);
                 self.registers[Register::SP as usize] = a * b;
             }
             OpCode::DIV => {
-                let a: u16 = self.fetch();
-                let b: u16 = self.fetch();
+                let a: u16 = self.fetch()?;
+                let b: u16 = self.fetch()?;
                 print!("0x{:X}, 0x{:X} -> 0x{:X}", a, b, a / b);
                 self.registers[Register::SP as usize] = a / b;
             }
             OpCode::POP => {
-                let r: Register = self.fetch();
+                let r: Register = self.fetch()?;
                 self.registers[r as usize] = self.registers[Register::SP as usize];
                 print!("0x{:X} -> {:?}", self.registers[r as usize], r);
             }
             OpCode::PUSH => {
-                let r: Register = self.fetch();
+                let r: Register = self.fetch()?;
                 self.registers[Register::SP as usize] =
                     self.data[self.registers[r as usize] as usize] as u16;
                 print!("{:?} -> {:X}", r, self.registers[Register::SP as usize]);
@@ -109,14 +94,14 @@ impl Machine {
         Ok(())
     }
 
-    fn fetch<T>(&mut self) -> T
+    fn fetch<'a, T>(&mut self) -> Result<T, String>
     where
-        T: Fetch,
+        T: Fetch<'a>,
     {
         let d_point = self.data[self.registers[Register::PC as usize] as usize];
-        let v: T = T::from(d_point);
+        let v: T = T::try_from(d_point).map_err(|_| format!("could not fetch"))?;
         self.registers[Register::PC as usize] += 1;
-        v
+        Ok(v)
     }
 
     pub fn print_state(&self) {
