@@ -2,26 +2,36 @@
 
 NovaVM is a virtual machine written in Rust for Novalang
 
-## Project Structure
+## How to Use
 
-### Key Files and Directories
+### Preprocessor
 
-- **Cargo.toml**: Contains the metadata and dependencies for the Rust project.
-- **src/**: Contains the source code for the project.
-  - **bin/**: Contains the binary files for the project.
-    - **machine/**: Contains the main entry point for the machine binary.
-      - **main.rs**: The main file for the machine binary.
-    - **preprocessor/**: Contains the main entry pount for the preprocessor binary.
-      - **main.rs**: The main file for the preprocessor binary.
-  - **fetch.rs**: Handles fetching operations.
-  - **lib.rs**: The main library file for the project.
-  - **opcode.rs**: Contains the opcode definitions and related logic.
-- **target/**: Contains the compiled output and build artifacts.
-
-## Building the Project
-
-To build the project, run the following command:
-
-```sh
-cargo build
+```shell
+$ cargo run --bin preprocessor asm/input.asm > proj/output.proj
+..
 ```
+
+### Machine
+
+```shell
+$ cargo run --bin machine proj/input.proj
+| RUNNING THE MACHINE |
+..
+```
+
+## What's working
+
+### Opcodes
+
+|      Working       | Name  | Binary Representation | Syntax             |
+| :----------------: | :---: | :-------------------: | :----------------- |
+| :heavy_check_mark: | HALT  |         0x00          | ``HALT``           |
+| :heavy_check_mark: |  NOP  |         0x01          | ``NOP``            |
+| :heavy_check_mark: |  ADD  |         0x50          | ``ADD reg v1 v2``  |
+| :heavy_check_mark: |  SUB  |         0x51          | ``SUB reg v1 v2``  |
+| :heavy_check_mark: |  MUL  |         0x52          | ``MUL reg v1 v2``  |
+| :heavy_check_mark: |  DIV  |         0x053         | ``DIV reg v1 v2``  |
+| :heavy_check_mark: | PUSH  |         0x60          | ``PUSH reg``       |
+| :heavy_check_mark: |  POP  |         0x61          | ``POP reg``        |
+| :heavy_check_mark: | SWAP  |         0x62          | ``SWAP reg1 reg2`` |
+
