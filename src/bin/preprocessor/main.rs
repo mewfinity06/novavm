@@ -17,8 +17,8 @@ use novavm::Register;
 ///     PUSH !FOO        \
 ///     POP   A          \
 ///     EQ    A !FOO
-/// 
-/// ADD !FOO !BAR ; 
+///
+/// ADD !FOO !BAR ;
 /// ```
 /// - Better comments
 /// ```asm
@@ -38,12 +38,36 @@ enum Part {
     Binary(u16),
 }
 
+fn parse_word(word: &str) -> Result<Part, String> {
+    let word = word.trim();
+    if word.starts_with('$') {
+        let x = u16::from_str_radix(&word[1..], 10)
+            .map_err(|_| format!("could not get base10 from {}", word))?;
+        Ok(Part::Base10(x))
+    } else if word.starts_with("0x") {
+        let x = u16::from_str_radix(&word[2..], 16)
+            .map_err(|_| format!("could not get hex from {}", word))?;
+        Ok(Part::Hex(x))
+    } else if OpCode::try_from(word).is_ok() {
+        Ok(Part::OpCode(OpCode::try_from(word).unwrap()))
+    } else if Register::try_from(word).is_ok() {
+        Ok(Part::Register(Register::try_from(word).unwrap()))
+    } else if u16::from_str_radix(word, 10).is_ok() {
+        Ok(Part::Base10(u16::from_str_radix(word, 10).unwrap()))
+    } else {
+        Err(format!("unknown `{}`", word))
+    }
+}
+
 fn main() -> Result<(), String> {
     // Obtain file path from commandline
     let args: Vec<_> = env::args().collect();
 
     if args.len() < 2 {
-        eprintln!("Usage {:?} [path-to-file].asm > output.proj", env::current_exe());
+        eprintln!(
+            "Usage {:?} [path-to-file].asm > output.proj",
+            env::current_exe()
+        );
         std::process::exit(1);
     }
 
@@ -63,46 +87,41 @@ fn main() -> Result<(), String> {
                 continue;
             }
 
-            let res: Vec<Part> = line
+            let res: Result<Vec<Part>, String> = line
                 .split_whitespace()
-                .map(|word| {
-                    let word = word.trim();
-                    match word {
-                        _ if word.starts_with('$') => {
-                            let x = u16::from_str_radix(&word[1..], 10)
-                                .expect(&format!("could not get base10 from {}", word));
-                            Part::Base10(x)
-                        }
-                        _ if word.starts_with("0x") => {
-                            let x = u16::from_str_radix(&word[2..], 16)
-                                .expect(&format!("could not get hex from {}", word));
-                            Part::Hex(x)
-                        }
-                        _ if OpCode::try_from(word).is_ok() => {
-                            Part::OpCode(OpCode::try_from(word).unwrap())
-                        }
-                        _ if Register::try_from(word).is_ok() => {
-                            Part::Register(Register::try_from(word).unwrap())
-                        }
-                        _ if u16::from_str_radix(word, 10).is_ok() => {
-                            Part::Base10(u16::from_str_radix(word, 10).unwrap())
-                        }
-                        _ => panic!("unknown `{}`", word),
-                    }
-                })
+                .map(parse_word)
                 .collect();
 
-            parts.extend(res);
+            match res {
+                Ok(parsed_parts) => parts.extend(parsed_parts),
+                Err(e) => eprintln!("Error parsing line: {}", e),
+            }
         }
 
         for part in parts {
             match part {
-                Part::OpCode(op_code) => print!("{:04X}", op_code as usize),
-                Part::Register(register) => print!("{:04X}", register as usize),
-                Part::Base10(x) => print!("{:04X}", x),
-                Part::Hex(x) => print!("{:04X}", x),
-                Part::Binary(x) => print!("{:04X}", x),
+                Part::OpCode(op_code) => {
+                    eprintln!("Op\t{:?}\t(0b{:08b})", op_code, op_code as u8);
+                    print!("0x{:X}", op_code as u8);
+                }
+                Part::Register(register) => {
+                    eprintln!("Reg\t{:?}\t(0b{:08b})", register, register as u8);
+                    print!("0x{:X}", register as u8);
+                }
+                Part::Base10(x) => {
+                    eprintln!("Base10\t{:?}\t(0b{:016b})", x, x);
+                    print!("0x{:X}", x);
+                }
+                Part::Hex(x) => {
+                    eprintln!("Hex\t{:?}\t(0b{:016b})", x, x);
+                    print!("0x{:X}", x);
+                }
+                Part::Binary(x) => {
+                    eprintln!("Binary\t{:?}", x);
+                    print!("0x{:X}", x);
+                }
             }
+            println!();
         }
     }
 
