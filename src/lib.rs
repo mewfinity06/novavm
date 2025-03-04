@@ -1,5 +1,6 @@
 pub mod fetch;
 pub mod opcode;
+pub mod syscall;
 
 use fetch::Fetch;
 use opcode::OpCode;
@@ -59,29 +60,6 @@ impl Machine {
         println!("|-----------------------------------------|");
         println!("| A  {a:04X} | B  {b:04X} | C     {c:04X} | M {m:04X} |");
         println!("| SP {sp:04X} | PC {pc:04X} | FLAGS {flags:04X} |");
-    
-        println!("| Stack (top 8 values):");
-        let stack_len = self.stack.len();
-        for i in 0..8 {
-            if i < stack_len {
-                print!("0x{:02X} ", self.stack[stack_len - 1 - i]);
-            } else {
-                print!("-- ");
-            }
-        }
-        println!();
-    }
-    
-    pub fn print_data(&self) {
-        for (i, d) in self.data.iter().enumerate() {
-            if i % 8 == 0 {
-                println!()
-            } else if i > 38 {
-                break;
-            }
-            print!("0x{d:02X} ");
-        }
-        println!();
     }
 
     pub fn step(&mut self) -> Result<(), String> {
@@ -90,8 +68,6 @@ impl Machine {
         }
 
         let op: OpCode = self.fetch()?;
-
-        print!("| Current opcode {:?} (0x{:X}) ", op, op as u8);
 
         match op {
             OpCode::HALT => self.handle_halt(),
@@ -103,77 +79,59 @@ impl Machine {
             OpCode::POP => self.handle_pop()?,
             OpCode::PUSH => self.handle_push()?,
         }
-
-        println!();
         Ok(())
     }
 
     fn handle_halt(&mut self) {
+        println!("| OpCode HALT");
         self.halt = true;
     }
 
-    fn handle_nop(&self) {}
+    /// Should this function be printed every time?
+    fn handle_nop(&self) {
+        println!("| OpCode NOP");
+    }
 
     fn handle_add(&mut self) -> Result<(), String> {
+        let r: Register = self.fetch()?;
         let a: u16 = self.fetch()?;
         let b: u16 = self.fetch()?;
         let result = a + b;
-
-        if let Ok(register) = Register::try_from(a as u8) {
-            self.registers[register as usize] = result;
-            print!("Reg {:?} 0x{:X}, 0x{:X} -> 0x{:X}", register, a, b, result);
-        } else {
-            self.registers[Register::SP as usize] = result;
-            print!("0x{:X}, 0x{:X} -> 0x{:X}", a, b, result);
-        }
+        println!("| ADD: Reg {:?} 0x{:X}, 0x{:X} -> 0x{:X}", r, a, b, result);
+        self.registers[r as usize] = result;
 
         Ok(())
     }
 
     fn handle_sub(&mut self) -> Result<(), String> {
+        let r: Register = self.fetch()?;
         let a: u16 = self.fetch()?;
         let b: u16 = self.fetch()?;
         let result = a - b;
-
-        if let Ok(register) = Register::try_from(a as u8) {
-            self.registers[register as usize] = result;
-            print!("Reg {:?} 0x{:X}, 0x{:X} -> 0x{:X}", register, a, b, result);
-        } else {
-            self.registers[Register::SP as usize] = result;
-            print!("0x{:X}, 0x{:X} -> 0x{:X}", a, b, result);
-        }
+        println!("| SUB: Reg {:?} 0x{:X}, 0x{:X} -> 0x{:X}", r, a, b, result);
+        self.registers[r as usize] = result;
 
         Ok(())
     }
 
     fn handle_mul(&mut self) -> Result<(), String> {
+        let r: Register = self.fetch()?;
         let a: u16 = self.fetch()?;
         let b: u16 = self.fetch()?;
         let result = a * b;
-
-        if let Ok(register) = Register::try_from(a as u8) {
-            self.registers[register as usize] = result;
-            print!("Reg {:?} 0x{:X}, 0x{:X} -> 0x{:X}", register, a, b, result);
-        } else {
-            self.registers[Register::SP as usize] = result;
-            print!("0x{:X}, 0x{:X} -> 0x{:X}", a, b, result);
-        }
+        println!("| MUL: Reg {:?} 0x{:X}, 0x{:X} -> 0x{:X}", r, a, b, result);
+        self.registers[r as usize] = result;
 
         Ok(())
     }
 
     fn handle_div(&mut self) -> Result<(), String> {
+        let r: Register = self.fetch()?;
         let a: u16 = self.fetch()?;
         let b: u16 = self.fetch()?;
         let result = a / b;
-
-        if let Ok(register) = Register::try_from(a as u8) {
-            self.registers[register as usize] = result;
-            print!("Reg {:?} 0x{:X}, 0x{:X} -> 0x{:X}", register, a, b, result);
-        } else {
-            self.registers[Register::SP as usize] = result;
-            print!("0x{:X}, 0x{:X} -> 0x{:X}", a, b, result);
-        }
+        println!("| DIV: Reg {:?} 0x{:X}, 0x{:X} -> 0x{:X}", r, a, b, result);
+        self.registers[r as usize] = result;
 
         Ok(())
     }
