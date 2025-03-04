@@ -101,32 +101,28 @@ fn main() -> Result<(), String> {
         for part in parts {
             match part {
                 Part::OpCode(op_code) => {
-                    eprintln!("Op\t{:?}\t(0b{:08b})", op_code, op_code as u8);
-                    print!("0x{:X}", op_code as u8);
+                    // eprintln!("Op\t{:?}\t(0b{:08b})", op_code, op_code as u8);
+                    println!("0x{:04X}", op_code as u8);
                 }
                 Part::Register(register) => {
-                    eprintln!("Reg\t{:?}\t(0b{:08b})", register, register as u8);
-                    print!("0x{:X}", register as u8);
+                    // eprintln!("Reg\t{:?}\t(0b{:08b})", register, register as u8);
+                    println!("0x{:04X}", register as u8);
                 }
                 Part::Base10(x) => {
-                    eprintln!("Base10\t{:?}\t(0b{:016b})", x, x);
-                    print!("0x{:X}", x);
+                    // eprintln!("Base10\t{:?}\t(0b{:016b})", x, x);
+                    println!("0x{:04X}", x);
                 }
                 Part::Hex(x) => {
-                    eprintln!("Hex\t{:?}\t(0b{:016b})", x, x);
-                    print!("0x{:X}", x);
+                    // eprintln!("Hex\t{:?}\t(0b{:016b})", x, x);
+                    println!("0x{:04X}", x);
                 }
                 Part::Binary(x) => {
-                    eprintln!("Binary\t{:?}", x);
-                    print!("0x{:X}", x);
+                    // eprintln!("Binary\t{:?}", x);
+                    println!("0x{:04X}", x);
                 }
             }
-            println!();
         }
     }
-
-    println!();
-
     Ok(())
 }
 
