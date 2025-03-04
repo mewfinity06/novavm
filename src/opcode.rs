@@ -1,4 +1,3 @@
-
 macro_rules! generate_opcodes {
     ($($name:ident = $v:expr)*) => {
         #[derive(Debug, PartialEq, Copy, Clone)]
@@ -33,7 +32,7 @@ macro_rules! generate_opcodes {
     };
 }
 
-generate_opcodes!{
+generate_opcodes! {
     HALT = 0x00
     NOP = 0x01
 
@@ -44,4 +43,5 @@ generate_opcodes!{
 
     PUSH = 0x60
     POP = 0x61
+    SWAP = 0x62
 }

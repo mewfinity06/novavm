@@ -20,7 +20,6 @@ pub enum Register {
 pub struct Machine {
     registers: [u16; Self::REGISTER_COUNT],
     data: [u8; Self::DATA_LENGTH],
-    stack: Vec<u8>,
     pub halt: bool,
 }
 
@@ -32,7 +31,6 @@ impl Machine {
         Self {
             registers: [0; Self::REGISTER_COUNT],
             data: [0; Self::DATA_LENGTH],
-            stack: Vec::with_capacity(Self::DATA_LENGTH),
             halt: false,
         }
     }
@@ -78,6 +76,7 @@ impl Machine {
             OpCode::DIV => self.handle_div()?,
             OpCode::POP => self.handle_pop()?,
             OpCode::PUSH => self.handle_push()?,
+            OpCode::SWAP => self.handle_swap()?,
         }
         Ok(())
     }
@@ -136,34 +135,34 @@ impl Machine {
         Ok(())
     }
 
+    /// Pop what ever the value was in SP into `r`
     fn handle_pop(&mut self) -> Result<(), String> {
         let r: Register = self.fetch()?;
-
-        if self.stack.len() < 2 {
-            return Err("Stack underflow".to_string());
-        }
-
-        let low_byte = self.stack.pop().unwrap() as u16;
-        let high_byte = self.stack.pop().unwrap() as u16;
-        let value = (high_byte << 8) | low_byte;
-
-        self.registers[r as usize] = value;
-        print!("POP 0x{:X} into {:?}", value, r);
-
+        self.registers[r as usize] = self.registers[Register::SP as usize];
         Ok(())
     }
 
+    /// Push what ever the value was in `r` into SP
     fn handle_push(&mut self) -> Result<(), String> {
-        let value: u16 = self.fetch()?;
+        let r: Register = self.fetch()?;
+        self.registers[Register::SP as usize] = self.registers[r as usize];
+        Ok(())
+    }
 
-        if self.stack.len() >= Self::DATA_LENGTH - 2 {
-            return Err("Stack overflow".to_string());
-        }
+    /// Swap values of `r1` and `r2`
+    fn handle_swap(&mut self) -> Result<(), String> {
+        let r1: Register = self.fetch()?;
+        let r2: Register = self.fetch()?;
 
-        self.stack.push((value >> 8) as u8); // High byte
-        self.stack.push((value & 0xFF) as u8); // Low byte
+        let mut v1 = self.registers[r1 as usize];
+        let mut v2 = self.registers[r2 as usize];
 
-        print!("PUSH 0x{:X}", value);
+        let temp = v2;
+        v2 = v1;
+        v1 = temp;
+
+        self.registers[r1 as usize] = v1;
+        self.registers[r2 as usize] = v2;
         Ok(())
     }
 }
