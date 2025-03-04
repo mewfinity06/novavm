@@ -1,10 +1,11 @@
-#![allow(unused)]
+// #![allow(unused)]
 use std::env;
 use std::fs::File;
 use std::io::{self, BufRead};
 use std::path::Path;
 
 use novavm::opcode::OpCode;
+use novavm::syscall::Syscall;
 use novavm::Register;
 
 /// TODO:
@@ -33,6 +34,7 @@ pub struct TODO;
 enum Part {
     OpCode(OpCode),
     Register(Register),
+    Syscall(Syscall),
     Base10(u16),
     Hex(u16),
     Binary(u16),
@@ -48,10 +50,12 @@ fn parse_word(word: &str) -> Result<Part, String> {
         let x = u16::from_str_radix(&word[2..], 16)
             .map_err(|_| format!("could not get hex from {}", word))?;
         Ok(Part::Hex(x))
-    } else if OpCode::try_from(word).is_ok() {
-        Ok(Part::OpCode(OpCode::try_from(word).unwrap()))
-    } else if Register::try_from(word).is_ok() {
-        Ok(Part::Register(Register::try_from(word).unwrap()))
+    } else if let Ok(op) = OpCode::try_from(word) {
+        Ok(Part::OpCode(op))
+    } else if let Ok(reg) = Register::try_from(word){
+        Ok(Part::Register(reg))
+    } else if let Ok(syscall) = Syscall::try_from(word) {
+        Ok(Part::Syscall(syscall))
     } else if u16::from_str_radix(word, 10).is_ok() {
         Ok(Part::Base10(u16::from_str_radix(word, 10).unwrap()))
     } else {
@@ -87,10 +91,7 @@ fn main() -> Result<(), String> {
                 continue;
             }
 
-            let res: Result<Vec<Part>, String> = line
-                .split_whitespace()
-                .map(parse_word)
-                .collect();
+            let res: Result<Vec<Part>, String> = line.split_whitespace().map(parse_word).collect();
 
             match res {
                 Ok(parsed_parts) => parts.extend(parsed_parts),
@@ -119,6 +120,10 @@ fn main() -> Result<(), String> {
                 Part::Binary(x) => {
                     // eprintln!("Binary\t{:?}", x);
                     println!("0x{:04X}", x);
+                }
+                Part::Syscall(syscall) => {
+                    // eprintln!("SYscall\t{:?}", syscall);
+                    println!("0x{:04X?}", syscall as u8);
                 }
             }
         }
