@@ -22,6 +22,8 @@ fn main() -> Result<(), String> {
 
     machine.set_data(&data);
 
+    println!("| RUNNING THE MACHINE |");
+
     while !machine.halt {
         machine.print_state();
         machine.step()?;
