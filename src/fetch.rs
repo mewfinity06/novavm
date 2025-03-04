@@ -10,13 +10,13 @@ impl TryFrom<u8> for Register {
 
     fn try_from(value: u8) -> Result<Self, Self::Error> {
         match value {
-            1 => Ok(Self::A),
-            2 => Ok(Self::B),
-            3 => Ok(Self::C),
-            4 => Ok(Self::M),
-            5 => Ok(Self::SP),
-            6 => Ok(Self::PC),
-            7 => Ok(Self::FLAGS),
+            0 => Ok(Self::A),
+            1 => Ok(Self::B),
+            2 => Ok(Self::C),
+            3 => Ok(Self::M),
+            4 => Ok(Self::SP),
+            5 => Ok(Self::PC),
+            6 => Ok(Self::FLAGS),
             _ => Err(format!("{} is not a valid register", value)),
         }
     }
