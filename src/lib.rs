@@ -6,6 +6,14 @@ use fetch::Fetch;
 use opcode::OpCode;
 use syscall::Syscall;
 
+/// Registers:
+///     A     - First register
+///     B     - Second register
+///     C     - Third register
+///     M     - Multipurpose register
+///     SP    - Stack Pointer
+///     PC    - Program Pointer
+///     FLAGS - Flags
 #[derive(Debug, Copy, Clone)]
 pub enum Register {
     A,
@@ -18,6 +26,17 @@ pub enum Register {
     RegisterCount,
 }
 
+/// Machine
+///     Registers: Holds the registers
+///     Memory   : Holds the mutable data
+///     Data     : Holds the immutable data
+///     Halt     : Should the program halt
+///     Debug    : Prints debug information
+///              | TODO?: have all debug info
+///              |        written to a file
+///              |        rather than to stdout 
+///              |        as to not be confused with 
+///              |        output of the program
 pub struct Machine {
     registers: [u16; Self::REGISTER_COUNT],
     memory: [u8; Self::MEMORY_LENGTH],
@@ -27,10 +46,14 @@ pub struct Machine {
 }
 
 impl Machine {
+    /// How many registers does this machine have?
     pub const REGISTER_COUNT: usize = Register::RegisterCount as usize;
+    /// Mutable memory length
     pub const MEMORY_LENGTH: usize = 4096;
+    /// Immutable memory length
     pub const DATA_LENGTH: usize = 1024;
 
+    /// Creates a new, empty machine, halts on first instruction
     pub fn new() -> Self {
         Self {
             registers: [0; Self::REGISTER_COUNT],
@@ -41,6 +64,7 @@ impl Machine {
         }
     }
 
+    /// Sets the mutable memory of the file from a slice of u8
     pub fn set_memory(&mut self, new_data: &[u8]) {
         if new_data.len() > self.memory.len() {
             panic!("Memory length exceeds memory capacity");
@@ -48,6 +72,7 @@ impl Machine {
         self.memory[..new_data.len()].copy_from_slice(new_data);
     }
 
+    /// Sets the immutable memory of the file from a slice of u8
     pub fn set_data(&mut self, new_data: &[u8]) {
         if new_data.len() > self.data.len() {
             panic!("Data length exceeds data capacity");
@@ -55,10 +80,12 @@ impl Machine {
         self.data[..new_data.len()].copy_from_slice(new_data);
     }
 
+    /// Enables debug information for the machine
     pub fn enable_debug(&mut self) {
         self.debug = true;
     }
 
+    /// Gets a value from memory at program counter
     fn fetch<'a, T>(&mut self) -> Result<T, String>
     where
         T: Fetch<'a>,
@@ -70,6 +97,7 @@ impl Machine {
         Ok(v)
     }
 
+    /// Prints the Machine's state
     pub fn print_state(&self) {
         let [a, b, c, m, sp, pc, flags] = self.registers;
         println!("|-----------------------------------------|");
@@ -77,14 +105,21 @@ impl Machine {
         println!("| SP {sp:04X} | PC {pc:04X} | FLAGS {flags:04X} |");
     }
 
+    /// Takes a `step` in the machine, increment the program counter by one and take an action
+    /// The step function is seperated into the following main steps
+    /// 1. Check if debug is set, if so, print state
+    /// 2. Check out of bounds error: if the program counter is larger than the memory length, halt
+    /// 3. Get current opcode and act accordingly
+    /// 4. If that opcode fails, return.
     pub fn step(&mut self) -> Result<(), String> {
 
         if self.debug {
             self.print_state();
         }
 
-        if self.registers[Register::PC as usize] as usize >= self.memory.len() {
+        if self.registers[Register::PC as usize] as usize > self.memory.len() {
             self.halt = true;
+            return Err(format!("Out of bounds"));
         }
 
         let op: OpCode = self.fetch()?;
@@ -104,6 +139,7 @@ impl Machine {
         Ok(())
     }
 
+    /// Halt the program
     fn handle_halt(&mut self) {
         self.halt = true;
         if self.debug {
@@ -111,13 +147,15 @@ impl Machine {
         };
     }
 
-    /// Should this function be printed every time?
+    /// Take no action, `No operation`
     fn handle_nop(&self) {
         if self.debug {
             println!("| OpCode NOP");
         }
     }
 
+    /// Take in a register and two values
+    /// Adds the values together and puts it into specified register
     fn handle_add(&mut self) -> Result<(), String> {
         let r: Register = self.fetch()?;
         let a: u16 = self.fetch()?;
@@ -130,6 +168,8 @@ impl Machine {
         Ok(())
     }
 
+    /// Take in a register and two values
+    /// Subs the values together and puts it into specified register
     fn handle_sub(&mut self) -> Result<(), String> {
         let r: Register = self.fetch()?;
         let a: u16 = self.fetch()?;
@@ -142,6 +182,8 @@ impl Machine {
         Ok(())
     }
 
+    /// Take in a register and two values
+    /// Multiplies the values together and puts it into specified register
     fn handle_mul(&mut self) -> Result<(), String> {
         let r: Register = self.fetch()?;
         let a: u16 = self.fetch()?;
@@ -154,6 +196,8 @@ impl Machine {
         Ok(())
     }
 
+    /// Take in a register and two values
+    /// Divides the values together and puts it into specified register
     fn handle_div(&mut self) -> Result<(), String> {
         let r: Register = self.fetch()?;
         let a: u16 = self.fetch()?;

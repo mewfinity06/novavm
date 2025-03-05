@@ -10,8 +10,7 @@ fn main() -> Result<(), String> {
     let args: Vec<_> = env::args().collect();
 
     if args.len() < 2 {
-        eprintln!("Usage {:?} [file].proj", env::current_exe());
-        std::process::exit(1);
+        return Err(format!("Usage {:?} [file].proj", env::current_exe()));
     }
 
     let file_path = args.get(1).unwrap();
@@ -40,8 +39,8 @@ fn get_data(file_path: &str) -> Result<(Vec<u8>, Vec<u8>), String> {
     };
 
     let reader = io::BufReader::new(file);
-    let mut result = Vec::new();
-    let mut data_section = Vec::new();
+    let mut memory = Vec::new();
+    let mut data = Vec::new();
     let mut in_data_section = false;
 
     for line in reader.lines() {
@@ -64,19 +63,19 @@ fn get_data(file_path: &str) -> Result<(Vec<u8>, Vec<u8>), String> {
 
             if in_data_section {
                 if high_byte != 0x00 {
-                    data_section.push(high_byte);
+                    data.push(high_byte);
                 }
-                data_section.push(low_byte);
+                data.push(low_byte);
             } else {
                 if high_byte != 0x00 {
-                    result.push(high_byte);
+                    memory.push(high_byte);
                 }
-                result.push(low_byte);
+                memory.push(low_byte);
             }
         } else {
             return Err(format!("invalid format: {}", line));
         }
     }
 
-    Ok((result, data_section))
+    Ok((memory, data))
 }
