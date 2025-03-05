@@ -13,7 +13,13 @@ fn main() -> Result<(), String> {
         return Err(format!("Usage {:?} [file].proj", env::current_exe()));
     }
 
-    let file_path = args.get(1).unwrap();
+    let flags = if args.len() > 2 {
+        &args[1..args.len()]
+    } else {
+        &[]
+    };
+
+    let file_path = args.last().unwrap();
 
     let (memory, data_section) = get_data(file_path)?;
 
@@ -21,7 +27,13 @@ fn main() -> Result<(), String> {
 
     machine.set_memory(&memory);
     machine.set_data(&data_section);
-    // machine.enable_debug();
+
+    flags.iter().for_each(|f| {
+        match f.as_str() {
+            "--debug" | "-d" => machine.enable_debug(),
+            _ => {}
+        }
+    });
 
     println!("| RUNNING THE MACHINE |");
 
