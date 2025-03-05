@@ -45,3 +45,4 @@ impl<'a> Fetch<'a> for Syscall {}
 
 impl<'a> Fetch<'a> for u8 {}
 impl<'a> Fetch<'a> for u16 {}
+impl<'a> Fetch<'a> for usize {}

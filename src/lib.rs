@@ -20,46 +20,43 @@ pub enum Register {
 
 pub struct Machine {
     registers: [u16; Self::REGISTER_COUNT],
+    memory: [u8; Self::MEMORY_LENGTH],
     data: [u8; Self::DATA_LENGTH],
     pub halt: bool,
+    pub debug: bool,
 }
 
 impl Machine {
-    pub const DATA_SECTION_LENGTH: usize = (Self::DATA_LENGTH as f32 * 0.01) as usize;
-    const REGISTER_COUNT: usize = Register::RegisterCount as usize;
-    const DATA_LENGTH: usize = 4096;
+    pub const REGISTER_COUNT: usize = Register::RegisterCount as usize;
+    pub const MEMORY_LENGTH: usize = 4096;
+    pub const DATA_LENGTH: usize = 1024;
 
     pub fn new() -> Self {
         Self {
             registers: [0; Self::REGISTER_COUNT],
+            memory: [0; Self::MEMORY_LENGTH],
             data: [0; Self::DATA_LENGTH],
             halt: false,
+            debug: false,
         }
+    }
+
+    pub fn set_memory(&mut self, new_data: &[u8]) {
+        if new_data.len() > self.memory.len() {
+            panic!("Memory length exceeds memory capacity");
+        }
+        self.memory[..new_data.len()].copy_from_slice(new_data);
     }
 
     pub fn set_data(&mut self, new_data: &[u8]) {
         if new_data.len() > self.data.len() {
-            panic!("Data length exceeds memory capacity");
+            panic!("Data length exceeds data capacity");
         }
         self.data[..new_data.len()].copy_from_slice(new_data);
     }
 
-    pub fn set_data_section(&mut self, data_section: &[u8]) {
-        let data_len = self.data.len();
-        let section_len = data_section.len();
-        
-        if section_len > Self::DATA_SECTION_LENGTH {
-            panic!("Data section length exceeds defined section length");
-        }
-        
-        if section_len > data_len {
-            panic!("Data length exceeds memory capacity");
-        }
-
-        let start = data_len - Self::DATA_SECTION_LENGTH;
-        let end = start + section_len;
-        
-        self.data[start..end].copy_from_slice(data_section);
+    pub fn enable_debug(&mut self) {
+        self.debug = true;
     }
 
     fn fetch<'a, T>(&mut self) -> Result<T, String>
@@ -67,7 +64,7 @@ impl Machine {
         T: Fetch<'a>,
     {
         let pc = self.registers[Register::PC as usize] as usize;
-        let d_point = self.data[pc];
+        let d_point = self.memory[pc];
         let v: T = T::try_from(d_point).map_err(|_| format!("could not fetch"))?;
         self.registers[Register::PC as usize] += 1;
         Ok(v)
@@ -81,7 +78,12 @@ impl Machine {
     }
 
     pub fn step(&mut self) -> Result<(), String> {
-        if self.registers[Register::PC as usize] as usize >= self.data.len() {
+
+        if self.debug {
+            self.print_state();
+        }
+
+        if self.registers[Register::PC as usize] as usize >= self.memory.len() {
             self.halt = true;
         }
 
@@ -103,13 +105,17 @@ impl Machine {
     }
 
     fn handle_halt(&mut self) {
-        println!("| OpCode HALT");
         self.halt = true;
+        if self.debug {
+            println!("| OpCode HALT")
+        };
     }
 
     /// Should this function be printed every time?
     fn handle_nop(&self) {
-        println!("| OpCode NOP");
+        if self.debug {
+            println!("| OpCode NOP");
+        }
     }
 
     fn handle_add(&mut self) -> Result<(), String> {
@@ -117,9 +123,10 @@ impl Machine {
         let a: u16 = self.fetch()?;
         let b: u16 = self.fetch()?;
         let result = a + b;
-        println!("| ADD: Reg {:?} 0x{:X}, 0x{:X} -> 0x{:X}", r, a, b, result);
         self.registers[r as usize] = result;
-
+        if self.debug {
+            println!("| ADD: Reg {:?} 0x{:X}, 0x{:X} -> 0x{:X}", r, a, b, result);
+        }
         Ok(())
     }
 
@@ -128,9 +135,10 @@ impl Machine {
         let a: u16 = self.fetch()?;
         let b: u16 = self.fetch()?;
         let result = a - b;
-        println!("| SUB: Reg {:?} 0x{:X}, 0x{:X} -> 0x{:X}", r, a, b, result);
         self.registers[r as usize] = result;
-
+        if self.debug {
+            println!("| SUB: Reg {:?} 0x{:X}, 0x{:X} -> 0x{:X}", r, a, b, result);
+        }
         Ok(())
     }
 
@@ -139,9 +147,10 @@ impl Machine {
         let a: u16 = self.fetch()?;
         let b: u16 = self.fetch()?;
         let result = a * b;
-        println!("| MUL: Reg {:?} 0x{:X}, 0x{:X} -> 0x{:X}", r, a, b, result);
         self.registers[r as usize] = result;
-
+        if self.debug {
+            println!("| MUL: Reg {:?} 0x{:X}, 0x{:X} -> 0x{:X}", r, a, b, result);
+        }
         Ok(())
     }
 
@@ -150,9 +159,10 @@ impl Machine {
         let a: u16 = self.fetch()?;
         let b: u16 = self.fetch()?;
         let result = a / b;
-        println!("| DIV: Reg {:?} 0x{:X}, 0x{:X} -> 0x{:X}", r, a, b, result);
         self.registers[r as usize] = result;
-
+        if self.debug {
+            println!("| DIV: Reg {:?} 0x{:X}, 0x{:X} -> 0x{:X}", r, a, b, result);
+        }
         Ok(())
     }
 
@@ -160,6 +170,9 @@ impl Machine {
     fn handle_pop(&mut self) -> Result<(), String> {
         let r: Register = self.fetch()?;
         self.registers[r as usize] = self.registers[Register::SP as usize];
+        if self.debug {
+            println!("| POP: Reg {:?}", r);
+        }
         Ok(())
     }
 
@@ -167,6 +180,9 @@ impl Machine {
     fn handle_push(&mut self) -> Result<(), String> {
         let r: Register = self.fetch()?;
         self.registers[Register::SP as usize] = self.registers[r as usize];
+        if self.debug {
+            println!("| POP: PUSH {:?}", r);
+        }
         Ok(())
     }
 
@@ -184,6 +200,9 @@ impl Machine {
 
         self.registers[r1 as usize] = v1;
         self.registers[r2 as usize] = v2;
+        if self.debug {
+            println!("| SWAP: Reg {:?} ({}) Reg {:?} ({})", r1, v1, r2, v2);
+        }
         Ok(())
     }
 

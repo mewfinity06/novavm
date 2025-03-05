@@ -43,7 +43,7 @@ macro_rules! generate_syscalls {
     };
 }
 
-generate_syscalls!{
+generate_syscalls! {
     EXIT = 1
     READ = 3
     WRITE = 4
@@ -51,13 +51,25 @@ generate_syscalls!{
 
 impl Syscall {
     pub fn handle(&self, m: &mut Machine) -> Result<(), String> {
-        let args_needed = self.required_args_count() as usize;
         match self {
             Self::EXIT => m.halt = true,
             Self::WRITE => {
-                // SYSCALL WRITE 1
-                let _mode: u8 = m.fetch()?;
-                unimplemented!("Must have data section")
+                if m.debug {
+                    print!("| WRITE ");
+                }
+                let mode: u8 = m.fetch()?;
+                let start: usize = m.fetch()?;
+                let end: usize = m.fetch()?;
+                if mode == 1 {
+                    if m.debug {
+                        println!("STDOUT");
+                    }
+                    let data = &m.data[start..start + end + 2 as usize];
+                    let output = std::str::from_utf8(data).map_err(|e| e.to_string())?;
+                    println!("{}", output);
+                } else {
+                    return Err(format!("Unsupported mode: {}", mode));
+                }
             }
             _ => return Err(format!("{:?} syscall not implemented", self)),
         }

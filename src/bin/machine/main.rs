@@ -16,17 +16,17 @@ fn main() -> Result<(), String> {
 
     let file_path = args.get(1).unwrap();
 
-    let (data, data_section) = get_data(file_path)?;
+    let (memory, data_section) = get_data(file_path)?;
 
     let mut machine = Machine::new();
 
-    machine.set_data(&data);
-    machine.set_data_section(&data_section);
+    machine.set_memory(&memory);
+    machine.set_data(&data_section);
+    // machine.enable_debug();
 
     println!("| RUNNING THE MACHINE |");
 
     while !machine.halt {
-        machine.print_state();
         machine.step()?;
     }
 
