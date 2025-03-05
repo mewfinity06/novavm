@@ -4,6 +4,7 @@ pub mod syscall;
 
 use fetch::Fetch;
 use opcode::OpCode;
+use syscall::Syscall;
 
 #[derive(Debug, Copy, Clone)]
 pub enum Register {
@@ -24,8 +25,9 @@ pub struct Machine {
 }
 
 impl Machine {
+    pub const DATA_SECTION_LENGTH: usize = (Self::DATA_LENGTH as f32 * 0.01) as usize;
     const REGISTER_COUNT: usize = Register::RegisterCount as usize;
-    const DATA_LENGTH: usize = 2048;
+    const DATA_LENGTH: usize = 4096;
 
     pub fn new() -> Self {
         Self {
@@ -40,6 +42,24 @@ impl Machine {
             panic!("Data length exceeds memory capacity");
         }
         self.data[..new_data.len()].copy_from_slice(new_data);
+    }
+
+    pub fn set_data_section(&mut self, data_section: &[u8]) {
+        let data_len = self.data.len();
+        let section_len = data_section.len();
+        
+        if section_len > Self::DATA_SECTION_LENGTH {
+            panic!("Data section length exceeds defined section length");
+        }
+        
+        if section_len > data_len {
+            panic!("Data length exceeds memory capacity");
+        }
+
+        let start = data_len - Self::DATA_SECTION_LENGTH;
+        let end = start + section_len;
+        
+        self.data[start..end].copy_from_slice(data_section);
     }
 
     fn fetch<'a, T>(&mut self) -> Result<T, String>
@@ -70,6 +90,7 @@ impl Machine {
         match op {
             OpCode::HALT => self.handle_halt(),
             OpCode::NOP => self.handle_nop(),
+            OpCode::SYSCALL => self.handle_syscall()?,
             OpCode::ADD => self.handle_add()?,
             OpCode::SUB => self.handle_sub()?,
             OpCode::MUL => self.handle_mul()?,
@@ -163,6 +184,15 @@ impl Machine {
 
         self.registers[r1 as usize] = v1;
         self.registers[r2 as usize] = v2;
+        Ok(())
+    }
+
+    /// Call syscall with provided args
+    fn handle_syscall(&mut self) -> Result<(), String> {
+        let syscall: Syscall = self.fetch()?;
+
+        syscall.handle(self)?;
+
         Ok(())
     }
 }

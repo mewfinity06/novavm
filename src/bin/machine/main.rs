@@ -16,11 +16,12 @@ fn main() -> Result<(), String> {
 
     let file_path = args.get(1).unwrap();
 
-    let data = get_data(file_path)?;
+    let (data, data_section) = get_data(file_path)?;
 
     let mut machine = Machine::new();
 
     machine.set_data(&data);
+    machine.set_data_section(&data_section);
 
     println!("| RUNNING THE MACHINE |");
 
@@ -32,7 +33,7 @@ fn main() -> Result<(), String> {
     Ok(())
 }
 
-fn get_data(file_path: &str) -> Result<Vec<u8>, String> {
+fn get_data(file_path: &str) -> Result<(Vec<u8>, Vec<u8>), String> {
     let file = match File::open(file_path) {
         Ok(f) => f,
         Err(_) => return Err(format!("could not read {}", file_path)),
@@ -40,11 +41,18 @@ fn get_data(file_path: &str) -> Result<Vec<u8>, String> {
 
     let reader = io::BufReader::new(file);
     let mut result = Vec::new();
+    let mut data_section = Vec::new();
+    let mut in_data_section = false;
 
     for line in reader.lines() {
         let line = line.map_err(|_| "could not read line".to_string())?;
         let line = line.trim();
         if line.is_empty() {
+            continue;
+        }
+
+        if line == "[[DATA]]" {
+            in_data_section = true;
             continue;
         }
 
@@ -54,14 +62,21 @@ fn get_data(file_path: &str) -> Result<Vec<u8>, String> {
             let high_byte = (value >> 8) as u8; // Extract the high 8 bits
             let low_byte = (value & 0xFF) as u8; // Extract the low 8 bits
 
-            if high_byte != 0x00 {
-                result.push(high_byte);
+            if in_data_section {
+                if high_byte != 0x00 {
+                    data_section.push(high_byte);
+                }
+                data_section.push(low_byte);
+            } else {
+                if high_byte != 0x00 {
+                    result.push(high_byte);
+                }
+                result.push(low_byte);
             }
-            result.push(low_byte);
         } else {
             return Err(format!("invalid format: {}", line));
         }
     }
 
-    Ok(result)
+    Ok((result, data_section))
 }

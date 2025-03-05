@@ -1,4 +1,4 @@
-// #![allow(unused)]
+#![allow(unused)]
 use std::env;
 use std::fs::File;
 use std::io::{self, BufRead};
@@ -79,15 +79,24 @@ fn main() -> Result<(), String> {
 
     if let Ok(lines) = read_lines(path_to_file) {
         let mut parts: Vec<Part> = Vec::with_capacity(100); // Pre-allocate with an estimated capacity
+        let mut data_section: Vec<u8> = Vec::new();
+        let mut in_data_section = false;
 
         for line in lines.flatten() {
-            // Convert file.asm contents into binary lines
-            // Each instruction will be converted into its own line
-            // ADD 0x82, 0x5 -> 0x50 0x82 0x50
-            // HALT          -> 0x00
-
             // Skip comments
             if line.starts_with(';') {
+                continue;
+            }
+
+            if line.starts_with("[[DATA]]") {
+                in_data_section = true;
+                let data_content = line["[[DATA]]".len()..].trim();
+                data_section.extend_from_slice(data_content.as_bytes());
+                continue;
+            }
+
+            if in_data_section {
+                data_section.extend_from_slice(line.trim().as_bytes());
                 continue;
             }
 
@@ -102,29 +111,30 @@ fn main() -> Result<(), String> {
         for part in parts {
             match part {
                 Part::OpCode(op_code) => {
-                    // eprintln!("Op\t{:?}\t(0b{:08b})", op_code, op_code as u8);
                     println!("0x{:04X}", op_code as u8);
                 }
                 Part::Register(register) => {
-                    // eprintln!("Reg\t{:?}\t(0b{:08b})", register, register as u8);
                     println!("0x{:04X}", register as u8);
                 }
                 Part::Base10(x) => {
-                    // eprintln!("Base10\t{:?}\t(0b{:016b})", x, x);
                     println!("0x{:04X}", x);
                 }
                 Part::Hex(x) => {
-                    // eprintln!("Hex\t{:?}\t(0b{:016b})", x, x);
                     println!("0x{:04X}", x);
                 }
                 Part::Binary(x) => {
-                    // eprintln!("Binary\t{:?}", x);
                     println!("0x{:04X}", x);
                 }
                 Part::Syscall(syscall) => {
-                    // eprintln!("SYscall\t{:?}", syscall);
                     println!("0x{:04X?}", syscall as u8);
                 }
+            }
+        }
+
+        if !data_section.is_empty() {
+            println!("[[DATA]]");
+            for byte in data_section {
+                println!("0x{:02X}", byte);
             }
         }
     }
