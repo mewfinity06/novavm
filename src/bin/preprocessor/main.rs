@@ -3,6 +3,7 @@ use std::env;
 use std::fs::File;
 use std::io::{self, BufRead};
 use std::path::Path;
+use unescape::unescape;
 
 use novavm::opcode::OpCode;
 use novavm::syscall::Syscall;
@@ -90,13 +91,23 @@ fn main() -> Result<(), String> {
 
             if line.starts_with("[[DATA]]") {
                 in_data_section = true;
-                let data_content = line["[[DATA]]".len()..].trim();
-                data_section.extend_from_slice(data_content.as_bytes());
+                let data_content = line["[[DATA]]".len()..].trim().trim_matches('"');
+                if let Some(unescaped) = unescape(data_content) {
+                    data_section.extend_from_slice(unescaped.as_bytes());
+                } else {
+                    data_section.extend_from_slice(data_content.as_bytes());
+                }
+                data_section.push(0); // Add null termination
                 continue;
             }
 
             if in_data_section {
-                data_section.extend_from_slice(line.trim().as_bytes());
+                if let Some(unescaped) = unescape(line.trim()) {
+                    data_section.extend_from_slice(unescaped.as_bytes());
+                } else {
+                    data_section.extend_from_slice(line.trim().as_bytes());
+                }
+                data_section.push(0); // Add null termination
                 continue;
             }
 

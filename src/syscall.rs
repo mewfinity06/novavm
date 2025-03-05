@@ -64,9 +64,13 @@ impl Syscall {
                     if m.debug {
                         println!("STDOUT");
                     }
-                    let data = &m.data[start..start + end + 2 as usize];
-                    let output = std::str::from_utf8(data).map_err(|e| e.to_string())?;
-                    println!("{}", output);
+                    let data = &m.data[start..start + end + 3 as usize];
+                    if let Some(&0) = data.last() {
+                        let output = std::str::from_utf8(&data[..data.len() - 1]).map_err(|e| e.to_string())?;
+                        print!("{}", output);
+                    } else {
+                        return Err("Data is not null-terminated".to_string());
+                    }
                 } else {
                     return Err(format!("Unsupported mode: {}", mode));
                 }

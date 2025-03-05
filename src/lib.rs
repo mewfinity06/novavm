@@ -6,37 +6,34 @@ use fetch::Fetch;
 use opcode::OpCode;
 use syscall::Syscall;
 
-/// Registers:
-///     A     - First register
-///     B     - Second register
-///     C     - Third register
-///     M     - Multipurpose register
-///     SP    - Stack Pointer
-///     PC    - Program Pointer
-///     FLAGS - Flags
+/// Register Enum
 #[derive(Debug, Copy, Clone)]
 pub enum Register {
+    /// First register
     A,
+    /// Second register
     B,
+    /// Third register
     C,
+    /// Multipurpose register
     M,
+    /// Stack pointer
     SP,
+    /// Program counter
     PC,
+    /// Flags
     FLAGS,
+    // Ignore, for other parts
     RegisterCount,
 }
 
 /// Machine
-///     Registers: Holds the registers
-///     Memory   : Holds the mutable data
-///     Data     : Holds the immutable data
-///     Halt     : Should the program halt
-///     Debug    : Prints debug information
-///              | TODO?: have all debug info
-///              |        written to a file
-///              |        rather than to stdout 
-///              |        as to not be confused with 
-///              |        output of the program
+/// - Registers: Holds the registers
+/// - Memory   : Holds the mutable data
+/// - Data     : Holds the immutable data
+/// - Halt     : Should the program halt
+/// - Debug    : Prints debug information
+///     - TODO: have all debug info written to a file rather than to stdout as to not be confused with output of the program
 pub struct Machine {
     registers: [u16; Self::REGISTER_COUNT],
     memory: [u8; Self::MEMORY_LENGTH],
@@ -112,7 +109,6 @@ impl Machine {
     /// 3. Get current opcode and act accordingly
     /// 4. If that opcode fails, return.
     pub fn step(&mut self) -> Result<(), String> {
-
         if self.debug {
             self.print_state();
         }
