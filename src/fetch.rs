@@ -1,7 +1,8 @@
-use crate::Register;
 use crate::opcode::OpCode;
+use crate::syscall::Syscall;
+use crate::Register;
 
-pub trait Fetch<'a> : TryFrom<u8> {}
+pub trait Fetch<'a>: TryFrom<u8> {}
 
 impl<'a> Fetch<'a> for Register {}
 
@@ -33,12 +34,14 @@ impl TryFrom<&str> for Register {
             "SP" => Ok(Self::SP),
             "PC" => Ok(Self::PC),
             "FLAGS" => Ok(Self::FLAGS),
-            _ => Err(format!("{} is not a valid register", value))
+            _ => Err(format!("{} is not a valid register", value)),
         }
     }
 }
 
 impl<'a> Fetch<'a> for OpCode {}
+
+impl<'a> Fetch<'a> for Syscall {}
 
 impl<'a> Fetch<'a> for u8 {}
 impl<'a> Fetch<'a> for u16 {}

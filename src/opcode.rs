@@ -35,6 +35,7 @@ macro_rules! generate_opcodes {
 generate_opcodes! {
     HALT = 0x00
     NOP = 0x01
+    SYSCALL = 0x02
 
     ADD = 0x50
     SUB = 0x51
