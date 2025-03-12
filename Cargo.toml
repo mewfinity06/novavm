@@ -3,10 +3,6 @@ name = "novavm"
 version = "0.1.0"
 edition = "2021"
 
-[dependencies]
-unescape = "0.1.0"
-
-
 [[bin]]
 name = "machine"
 
