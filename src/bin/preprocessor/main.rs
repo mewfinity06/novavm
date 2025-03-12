@@ -8,10 +8,11 @@ use std::path::Path;
 mod pp;
 
 /// TODO:
-/// - Implement a macrosystem
+/// Implement a macrosystem
 /// ```asm
-/// !define_macro FOO => 0x71
-/// !define_macro BAR => 0x09
+/// !define_macro FOO 0x71 ; Set FOO as 0x71
+/// !define_macro BAR 0x09 ; Set BAR as 0x09
+///
 /// ; Multiline macro
 /// !define_macro BAZ => \
 ///     PUSH !FOO        \
@@ -22,7 +23,6 @@ mod pp;
 /// ```
 /// - Better comments
 /// ```asm
-/// PUSH A ; Comment like this is impossible at this point
 /// ;;
 ///     Multiline comment
 /// ;;
