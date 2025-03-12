@@ -1,13 +1,12 @@
 #![allow(unused)]
+use pp::PreProcessor;
 use std::env;
 use std::fs::File;
 use std::io::{self, BufRead};
 use std::path::Path;
 use unescape::unescape;
 
-use novavm::opcode::OpCode;
-use novavm::syscall::Syscall;
-use novavm::Register;
+mod pp;
 
 /// TODO:
 /// - Implement a macrosystem
@@ -28,42 +27,35 @@ use novavm::Register;
 /// ;;
 ///     Multiline comment
 /// ;;
-/// ```
+///```
 pub struct TODO;
 
-#[derive(Debug, Clone, Copy)]
-enum Part {
-    OpCode(OpCode),
-    Register(Register),
-    Syscall(Syscall),
-    Base10(u16),
-    Hex(u16),
-    Binary(u16),
-}
+fn main() -> Result<(), String> {
+    let args: Vec<_> = env::args().collect();
 
-fn parse_word(word: &str) -> Result<Part, String> {
-    let word = word.trim();
-    if word.starts_with('$') {
-        let x = u16::from_str_radix(&word[1..], 10)
-            .map_err(|_| format!("could not get base10 from {}", word))?;
-        Ok(Part::Base10(x))
-    } else if word.starts_with("0x") {
-        let x = u16::from_str_radix(&word[2..], 16)
-            .map_err(|_| format!("could not get hex from {}", word))?;
-        Ok(Part::Hex(x))
-    } else if let Ok(op) = OpCode::try_from(word) {
-        Ok(Part::OpCode(op))
-    } else if let Ok(reg) = Register::try_from(word){
-        Ok(Part::Register(reg))
-    } else if let Ok(syscall) = Syscall::try_from(word) {
-        Ok(Part::Syscall(syscall))
-    } else if u16::from_str_radix(word, 10).is_ok() {
-        Ok(Part::Base10(u16::from_str_radix(word, 10).unwrap()))
-    } else {
-        Err(format!("unknown `{}`", word))
+    if args.len() < 2 {
+        return Err(format!(
+            "Usage {} input.asm > output.proj",
+            env::current_exe().unwrap().display()
+        ));
     }
+
+    let file_path = args.get(1).unwrap();
+
+    let lines: Vec<_> = match read_lines(file_path) {
+        Ok(l) => l.flatten().collect(),
+        Err(e) => return Err(format!("{:?}", e)),
+    };
+
+    let mut pp = PreProcessor::new(lines);
+
+    pp.parse()?;
+    pp.print();
+
+    Ok(())
 }
 
+/*
 fn main() -> Result<(), String> {
     // Obtain file path from commandline
     let args: Vec<_> = env::args().collect();
@@ -79,7 +71,8 @@ fn main() -> Result<(), String> {
     let path_to_file = args.get(1).unwrap();
 
     if let Ok(lines) = read_lines(path_to_file) {
-        let mut parts: Vec<Part> = Vec::with_capacity(100); // Pre-allocate with an estimated capacity
+        let pp = PreProcessor::new(lines.flatten());
+
         let mut data_section: Vec<u8> = Vec::new();
         let mut in_data_section = false;
 
@@ -134,8 +127,7 @@ fn main() -> Result<(), String> {
                     println!("0x{:04X}", x);
                 }
                 Part::Binary(x) => {
-                    println!("0x{:04X}", x);
-                }
+                    println!("0x{:04X}", x);        }
                 Part::Syscall(syscall) => {
                     println!("0x{:04X?}", syscall as u8);
                 }
@@ -149,8 +141,10 @@ fn main() -> Result<(), String> {
             }
         }
     }
+
     Ok(())
 }
+*/
 
 fn read_lines<P>(filename: P) -> io::Result<io::Lines<io::BufReader<File>>>
 where
