@@ -64,13 +64,21 @@ impl Syscall {
                     if m.debug {
                         println!("STDOUT");
                     }
-                    let data = &m.data[start..start + end + 3 as usize];
-                    if let Some(&0) = data.last() {
+                    let data = &m.data[start..start + end as usize];
+                    /* if let Some(&0) = data.last() {
                         let output = std::str::from_utf8(&data[..data.len() - 1]).map_err(|e| e.to_string())?;
                         print!("{}", output);
                     } else {
                         return Err("Data is not null-terminated".to_string());
-                    }
+                    } */
+
+                    // FIXME: Output should be escaped properly and print the data properly
+                    //        See also, preprocessor/pp.rs to see if the data is being layed
+                    //        correctly
+                    let output =
+                        std::str::from_utf8(&data[..data.len()]).map_err(|e| e.to_string())?;
+
+                    print!("{}", output);
                 } else {
                     return Err(format!("Unsupported mode: {}", mode));
                 }
