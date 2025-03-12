@@ -59,7 +59,7 @@ impl PreProcessor {
                 continue;
             }
 
-            parts.extend(line.split(' ').map(parse_word));
+            parts.extend(line.split(' ').map(parse_word).filter_map(|x| x.ok()));
         }
         let parsed_parts: Vec<u8> = parts
             .iter()
@@ -75,36 +75,38 @@ impl PreProcessor {
 
     pub fn print(self) {
         for x in self.memory {
-            println!("0x{x:04X?}");
+            print!("0x{x:04X?}");
         }
+        println!();
         println!("[[DATA]]");
         for x in self.data {
-            println!("0x{x:04X?}");
+            print!("0x{x:04X?}");
         }
     }
 }
 
-fn parse_word(s: &str) -> Part {
+fn parse_word(s: &str) -> Result<Part, String> {
     if let Ok(op) = OpCode::try_from(s) {
-        Part::OpCode(op)
+        Ok(Part::OpCode(op))
     } else if let Ok(r) = Register::try_from(s) {
-        Part::Register(r)
+        Ok(Part::Register(r))
     } else if let Ok(s) = Syscall::try_from(s) {
-        Part::Syscall(s)
+        Ok(Part::Syscall(s))
     } else if let Some(x) = s.strip_prefix('$') {
         let parsed =
             u16::from_str_radix(x, 10).expect(&format!("could not parse `{}` into Base10", x));
-        Part::Base10(parsed)
+        Ok(Part::Base10(parsed))
     } else if let Some(x) = s.strip_prefix('%') {
         let parsed =
             u16::from_str_radix(x, 64).expect(&format!("could not parse `{}` into Base64", x));
-        Part::Base64(parsed)
+        Ok(Part::Base64(parsed))
     } else if let Some(x) = s.strip_prefix("0x") {
         let parsed =
             u16::from_str_radix(x, 16).expect(&format!("could not parse `{}` into hex", x));
-        Part::Hex(parsed)
+        Ok(Part::Hex(parsed))
     } else {
-        panic!("Unknown word `{s}`");
+        // panic!("Unknown word `{s}`");
+        Err(format!("unknown word `{s}`"))
     }
 }
 
