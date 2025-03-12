@@ -28,11 +28,9 @@ fn main() -> Result<(), String> {
     machine.set_memory(&memory);
     machine.set_data(&data_section);
 
-    flags.iter().for_each(|f| {
-        match f.as_str() {
-            "--debug" | "-d" => machine.enable_debug(),
-            _ => {}
-        }
+    flags.iter().for_each(|f| match f.as_str() {
+        "--debug" | "-d" => machine.enable_debug(),
+        _ => {}
     });
 
     println!("| RUNNING THE MACHINE |");
@@ -45,6 +43,55 @@ fn main() -> Result<(), String> {
 }
 
 fn get_data(file_path: &str) -> Result<(Vec<u8>, Vec<u8>), String> {
+    let file = match File::open(file_path) {
+        Ok(f) => f,
+        Err(_) => return Err(format!("could not read {}", file_path)),
+    };
+
+    let reader = io::BufReader::new(file);
+
+    let mut memory: Vec<u8> = vec![];
+    let mut data: Vec<u8> = vec![];
+    let mut in_data_section: bool = false;
+
+    for line in reader.lines() {
+        let line = line.map_err(|_| "could not read line".to_string())?;
+        let line = line.trim();
+        if line.is_empty() {
+            continue;
+        }
+
+        if line == "[[DATA]]" {
+            in_data_section = true;
+            continue;
+        }
+
+        let chunks: Vec<_> = line.split("0x").collect();
+
+        dbg!(&chunks);
+
+        for chunk in chunks {
+            if chunk.is_empty() {
+                continue;
+            }
+
+            let value = u16::from_str_radix(chunk, 16)
+                .map_err(|_| format!("could not parse hex number from `{}`", chunk))?;
+
+            let low = (value & 0xff) as u8;
+
+            if !in_data_section {
+                memory.push(low);
+            } else {
+                data.push(low);
+            }
+        }
+    }
+
+    Ok((memory, data))
+}
+
+fn _get_dataet_data(file_path: &str) -> Result<(Vec<u8>, Vec<u8>), String> {
     let file = match File::open(file_path) {
         Ok(f) => f,
         Err(_) => return Err(format!("could not read {}", file_path)),
