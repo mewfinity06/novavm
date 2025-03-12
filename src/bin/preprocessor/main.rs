@@ -4,7 +4,6 @@ use std::env;
 use std::fs::File;
 use std::io::{self, BufRead};
 use std::path::Path;
-use unescape::unescape;
 
 mod pp;
 

@@ -1,7 +1,6 @@
 use novavm::opcode::OpCode;
 use novavm::syscall::Syscall;
 use novavm::Register;
-use unescape::unescape;
 
 #[derive(Debug, Clone, Copy)]
 enum Part {
@@ -62,10 +61,10 @@ impl PreProcessor {
 
             parts.extend(line.split(' ').map(parse_word));
         }
-        let parsed_parts: Vec<_> = parts
+        let parsed_parts: Vec<u8> = parts
             .iter()
             .map(parse_part_into_u16)
-            .flat_map(u16::to_be_bytes)
+            .map(|x| (x & 0xFF) as u8)
             .collect();
 
         self.memory.extend_from_slice(&parsed_parts);
@@ -76,17 +75,13 @@ impl PreProcessor {
 
     pub fn print(self) {
         for x in self.memory {
-            println!("Ox{x:X?}");
+            println!("0x{x:04X?}");
         }
         println!("[[DATA]]");
         for x in self.data {
-            println!("0x{x:X?}");
+            println!("0x{x:04X?}");
         }
     }
-}
-
-fn u16_to_u8(x: u16) -> (u8, u8) {
-    todo!()
 }
 
 fn parse_word(s: &str) -> Part {
