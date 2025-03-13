@@ -1,5 +1,7 @@
-!define_macro FOO => 0x71
-!define_macro BAR => 0x09
+; test_macro_simple.asm
+!define_macro MY_VALUE 0x01
+!define_macro MY_REGISTER A
 
-; ADD 0x71, 0x09 into reg A
-; ADD A !FOO !BAR
+
+ADD !MY_REGISTER !MY_VALUE 0x01  ; Should expand to MOV A, 0xABCD
+HALT
